@@ -1,186 +1,147 @@
 import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Tabs, TabsList, TabsTrigger, TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from "@/components/ui/select";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import {
+  FaChartBar, FaTasks, FaComments as ChatIcon, FaUserTie,
+} from "react-icons/fa";
 import CategoryComparisonChart from "./CategoryComparisonChart";
 import InsightDropdown from "./InsightDropdown";
-import { FaStar, FaLightbulb, FaChartLine, FaComments, FaUser } from "react-icons/fa";
 import PerCategoryChart from "./PerCategoryChart";
 
 export default function Dashboard({ data }) {
-  const [selectedLeader, setSelectedLeader] = useState(data?.[0]?.leader || "");
-  const leaderData = data.find((d) => d.leader === selectedLeader);
-  const chartData = leaderData ? [leaderData] : [];
-
-  const avgSelfRating = leaderData
-    ? (
-        Object.values(leaderData.selfAssessment).reduce((a, b) => a + (b || 0), 0) /
-        Object.values(leaderData.selfAssessment).filter((v) => v !== null).length
-      ).toFixed(2)
-    : "N/A";
-
-  const avgPeerScore = leaderData
-    ? (
-        Object.values(leaderData.averageScores).reduce((a, b) => a + (b || 0), 0) /
-        Object.values(leaderData.averageScores).filter((v) => v !== null).length
-      ).toFixed(2)
-    : "N/A";
-
-  // Fix excellent ratings: count how many peer scores are exactly 5
-  const excellentRatings = leaderData
-    ? Object.values(leaderData.averageScores).filter((score) => score === 5).length
-    : 0;
-
-  // Insight descriptions to pass to InsightDropdown
-  const insightDescriptions = {
-    topStrength:
-      "The category with the highest peer rating, showing the leader's greatest strength.",
-    developmentArea:
-      "The category with the lowest peer rating, highlighting areas for improvement.",
-    alignmentScore:
-      "Average difference between self and peer ratings, indicating the leader's self-awareness accuracy.",
-    excellentRatings:
-      "Number of categories rated 'Excellent' (5) by peers, reflecting top-rated skills.",
-  };
-
-  // Comments carousel state & logic
+  const [selectedLeader, setSelectedLeader] = useState(data?.[0]?.leader);
+  const leaderData = data.find(d => d.leader === selectedLeader);
+  const [tab, setTab] = useState("peer");
+  const [cIndex, setCIndex] = useState(0);
   const commentKeys = ["start", "stop", "continue", "general"];
-  const [commentIndex, setCommentIndex] = useState(0);
 
-  const nextComment = () => setCommentIndex((i) => (i + 1) % commentKeys.length);
-  const prevComment = () => setCommentIndex((i) => (i - 1 + commentKeys.length) % commentKeys.length);
+  // Metrics
+  const avgPeer = leaderData
+    ? (Object.values(leaderData.averageScores).filter(v => v != null)
+      .reduce((a, b) => a + b, 0) / Object.values(leaderData.averageScores).filter(v => v != null).length).toFixed(2) : "N/A";
+  const avgSelf = leaderData
+    ? (Object.values(leaderData.selfAssessment).filter(v => v != null)
+      .reduce((a, b) => a + b, 0) / Object.values(leaderData.selfAssessment).filter(v => v != null).length).toFixed(2) : "N/A";
 
   return (
-    <motion.div
-      className="p-6 space-y-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <h1 className="text-3xl font-bold flex items-center space-x-3">
-        <FaUser className="text-blue-600" />
-        <span>360Survey Dashboard</span>
-      </h1>
+    <div className="flex space-x-6 p-6 bg-gray-50">
+      {/* Sidebar (fixed-height) */}
+      <aside className="w-60 h-96 bg-white rounded-xl shadow-lg p-4 flex flex-col items-center space-y-4">
+        <FaUserTie className="text-5xl text-teal-600 mb-2" />
+        <Select value={selectedLeader} onValueChange={setSelectedLeader}>
+          <SelectTrigger className="w-full bg-gray-100 rounded-lg border border-gray-300">
+            <SelectValue>{selectedLeader}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {data.map(d => (
+              <SelectItem key={d.leader} value={d.leader}>
+                {d.leader}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="w-full mt-4">
+          <InsightDropdown leaderData={leaderData} />
+        </div>
+      </aside>
 
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-col max-w-xs w-full">
-          <label htmlFor="leader-select" className="mb-1 text-sm font-medium text-gray-700 flex items-center gap-2">
-            <FaUser /> Select Leader:
-          </label>
-          <Select
-            id="leader-select"
-            value={selectedLeader}
-            onValueChange={setSelectedLeader}
-            className="w-full"
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Choose a leader" />
-            </SelectTrigger>
-            <SelectContent>
-              {data.map((d) => (
-                <SelectItem key={d.leader} value={d.leader}>
-                  {d.leader}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Main Content */}
+      <motion.main className="flex-1 space-y-8">
+        {/* Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <MetricCard title="Avg Peer Score" value={avgPeer} bg="blue" />
+          <MetricCard title="Avg Self Rating" value={avgSelf} bg="purple" />
+          <MetricCard
+            title="Excellent Ratings"
+            value={
+              leaderData
+                ? Object.values(leaderData.averageScores).filter(v => v === 5).length
+                : 0
+            }
+            bg="green"
+          />
         </div>
 
-        <div className="flex space-x-4">
-          <button
-            onClick={() => toast.success("File imported successfully!")}
-            className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
-          >
-            Import File
-          </button>
-          <button className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Export PDF</button>
-          <button className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Export CSV</button>
+        {/* Tabs with icon-over-label pills */}
+        <div className="bg-white p-4 rounded-xl shadow">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="flex justify-center space-x-4 mb-4">
+              <IconTab value="peer" icon={<FaChartBar />} label="Peer vs Self" active={tab === "peer"} />
+              <IconTab value="per" icon={<FaTasks />} label="Per Category" active={tab === "per"} />
+            </TabsList>
+
+            <TabsContent value="peer">
+              <CategoryComparisonChart data={[leaderData]} />
+            </TabsContent>
+            <TabsContent value="per">
+              <PerCategoryChart leaderData={leaderData} />
+            </TabsContent>
+          </Tabs>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <InsightDropdown
-          leaderData={leaderData}
-          descriptions={insightDescriptions}
-          excellentRatings={excellentRatings}
-          icons={{
-            topStrength: <FaStar className="text-yellow-500" />,
-            developmentArea: <FaLightbulb className="text-red-500" />,
-            alignmentScore: <FaChartLine className="text-blue-500" />,
-            excellentRatings: <FaStar className="text-green-500" />,
-          }}
-        />
-
-        <Card className="bg-green-50 transition hover:shadow-md">
-          <CardContent className="p-4">
-            <p className="text-sm font-medium text-green-700 flex items-center gap-1">
-              <FaStar /> Average Peer Score
-            </p>
-            <p className="text-2xl font-bold text-green-900">{avgPeerScore}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-purple-50 transition hover:shadow-md">
-          <CardContent className="p-4">
-            <p className="text-sm font-medium text-purple-700 flex items-center gap-1">
-              <FaStar /> Average Self Rating
-            </p>
-            <p className="text-2xl font-bold text-purple-900">{avgSelfRating}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="peerVsSelf" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="peerVsSelf">Peer vs Self</TabsTrigger>
-          <TabsTrigger value="perCategory">Per Category</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="peerVsSelf">
-          <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
-            <CategoryComparisonChart data={chartData} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="perCategory">
-  <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
-    <PerCategoryChart leaderData={leaderData} />
-  </div>
-</TabsContent>
-      </Tabs>
-
-      {/* Comments carousel */}
-      <div className="relative max-w-3xl mx-auto">
-        <Card className="transition hover:shadow-md">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <FaComments /> {commentKeys[commentIndex].charAt(0).toUpperCase() + commentKeys[commentIndex].slice(1)} Comments
+        {/* Comment Carousel */}
+        <div className="max-w-xl mx-auto">
+          <div className="bg-white p-6 rounded-xl shadow text-center">
+            <motion.div
+              key={cIndex}
+              className="space-y-4"
+              initial={{ opacity: 0.5, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h3 className="text-lg font-semibold text-gray-800 uppercase">
+                {commentKeys[cIndex]} Comments
               </h3>
-              <div className="space-x-2">
-                <button
-                  onClick={prevComment}
-                  aria-label="Previous comment"
-                  className="p-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-                >
-                  ‹
-                </button>
-                <button
-                  onClick={nextComment}
-                  aria-label="Next comment"
-                  className="p-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-                >
-                  ›
-                </button>
-              </div>
+              <p className="text-gray-700 whitespace-pre-line">
+                {leaderData?.comments?.[commentKeys[cIndex]] || "No comments."}
+              </p>
+            </motion.div>
+            <div className="flex justify-center space-x-4 mt-4">
+              <button
+                onClick={() => setCIndex((cIndex + 3) % 4)}
+                className="p-2 bg-teal-600 text-white rounded-full hover:bg-teal-700"
+              >
+                ‹
+              </button>
+              <button
+                onClick={() => setCIndex((cIndex + 1) % 4)}
+                className="p-2 bg-teal-600 text-white rounded-full hover:bg-teal-700"
+              >
+                ›
+              </button>
             </div>
-            <p className="text-sm whitespace-pre-line min-h-[80px]">
-              {leaderData?.comments?.[commentKeys[commentIndex]] || "No comments"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </motion.div>
+          </div>
+        </div>
+      </motion.main>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, bg }) {
+  const colors = {
+    blue: "bg-gradient-to-br from-blue-100 to-blue-200 border-blue-400",
+    purple: "bg-gradient-to-br from-purple-100 to-purple-200 border-purple-400",
+    green: "bg-gradient-to-br from-green-100 to-green-200 border-green-400",
+  };
+  return (
+    <div className={`border-l-4 ${colors[bg]} p-5 rounded-lg shadow`}>
+      <p className="text-sm text-gray-700 mb-1">{title}</p>
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
+    </div>
+  );
+}
+
+function IconTab({ value, icon, label, active }) {
+  return (
+    <TabsTrigger value={value} className="flex flex-col items-center space-y-1">
+      <div className={`text-2xl ${active ? "text-teal-600" : "text-gray-500"}`}>{icon}</div>
+      <span className={`text-sm ${active ? "text-teal-600 font-semibold" : "text-gray-600"}`}>
+        {label}
+      </span>
+    </TabsTrigger>
   );
 }
