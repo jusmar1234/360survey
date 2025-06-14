@@ -54,7 +54,7 @@ export default function Dashboard({ data }) {
       <motion.main className="flex-1 space-y-8">
         {/* Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Avg Peer Score" value={avgPeer} bg="blue" />
+          <MetricCard title="Avg 360 Score" value={avgPeer} bg="blue" />
           <MetricCard title="Avg Self Rating" value={avgSelf} bg="purple" />
           <MetricCard
             title="Excellent Ratings"
@@ -66,23 +66,22 @@ export default function Dashboard({ data }) {
             bg="green"
           />
         </div>
-
-        {/* Tabs with icon-over-label pills */}
         <div className="bg-white p-4 rounded-xl shadow">
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="flex justify-center space-x-4 mb-4">
-              <IconTab value="peer" icon={<FaChartBar />} label="Peer vs Self" active={tab === "peer"} />
-              <IconTab value="per" icon={<FaTasks />} label="Per Category" active={tab === "per"} />
-            </TabsList>
+  <Tabs value={tab} onValueChange={setTab}>
+    <TabsList className="flex justify-center space-x-4 mb-4">
+      <IconTab value="peer" icon={<FaChartBar />} label="Peer vs Self" active={tab === "peer"} />
+      <IconTab value="per" icon={<FaTasks />} label="Per Category" active={tab === "per"} />
+    </TabsList>
 
-            <TabsContent value="peer">
-              <CategoryComparisonChart data={[leaderData]} />
-            </TabsContent>
-            <TabsContent value="per">
-              <PerCategoryChart leaderData={leaderData} />
-            </TabsContent>
-          </Tabs>
-        </div>
+    <TabsContent value="peer">
+      <CategoryComparisonChart data={[leaderData]} />
+    </TabsContent>
+    <TabsContent value="per">
+      <PerCategoryChart leaderData={leaderData} />
+    </TabsContent>
+  </Tabs>
+</div>
+
 
         {/* Comment Carousel */}
         <div className="max-w-xl mx-auto">
@@ -134,14 +133,16 @@ function MetricCard({ title, value, bg }) {
     </div>
   );
 }
-
 function IconTab({ value, icon, label, active }) {
   return (
-    <TabsTrigger value={value} className="flex flex-col items-center space-y-1">
-      <div className={`text-2xl ${active ? "text-teal-600" : "text-gray-500"}`}>{icon}</div>
-      <span className={`text-sm ${active ? "text-teal-600 font-semibold" : "text-gray-600"}`}>
-        {label}
-      </span>
+    <TabsTrigger
+      value={value}
+      className={`flex items-center space-x-2 px-4 py-2 rounded-full ${
+        active ? "bg-blue-100 text-blue-700 font-semibold" : "text-gray-600"
+      }`}
+    >
+      <span className="text-lg">{icon}</span>
+      <span className="text-sm">{label}</span>
     </TabsTrigger>
   );
 }
