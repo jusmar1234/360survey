@@ -73,14 +73,8 @@ export function parseSurveySheets(file) {
 
     const leader = sheetName;
 
-    // Find the last valid self-assessment row (blank name/meta but has answers)
     const reversed = [...json].reverse();
     const selfRow = reversed.find(isSelfAssessmentRow);
-
-    if (!selfRow) {
-      console.warn(`Leader "${leader}" (sheet #${sheetIndex + 1}) has no self-assessment data.`);
-    }
-
     const selfRowIndex = selfRow ? json.indexOf(selfRow) : -1;
 
     const peerResponses = selfRowIndex >= 0
@@ -183,6 +177,7 @@ export function parseSurveySheets(file) {
     leadersData.push({
       leader,
       peerResponses: peerCount,
+      rawPeers: peerResponses, // ✅ Add this for demographics
       averageScores,
       selfAssessment,
       questions,
